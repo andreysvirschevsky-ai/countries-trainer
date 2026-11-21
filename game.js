@@ -14,7 +14,7 @@ let selected=defaultTask(), round=null, tick=null, toastTimer=null, assignment=a
 function toast(msg){$('notice').textContent=msg;clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('notice').textContent='',4500);}
 function display(html){serial++;clearInterval(tick);app.innerHTML=html;$('logout').hidden=!session;window.scrollTo(0,0);}
 const errorMsg=e=>e instanceof Error?e.message:'Возникла ошибка. Повторите попытку.';
-function act(fn){return async function(e){e?.preventDefault();const b=e?.submitter||e?.currentTarget;if(b?.tagName==='BUTTON')b.disabled=true;try{await fn(e);}catch(err){const node=$('error');if(node)node.textContent=errorMsg(err);toast(errorMsg(err));}finally{if(b?.tagName==='BUTTON')b.disabled=false;}};}
+function act(fn,errorId='error'){return async function(e){e?.preventDefault();const b=e?.submitter||e?.currentTarget;if(b?.tagName==='BUTTON')b.disabled=true;try{const node=$(errorId);if(node)node.textContent='';await fn(e);}catch(err){const node=$(errorId);if(node)node.textContent=errorMsg(err);else toast(errorMsg(err));}finally{if(b?.tagName==='BUTTON')b.disabled=false;}};}
 function applyLink(){
   if(!location.hash.startsWith('#task='))return false;
   try{const data=JSON.parse(decodeURIComponent(location.hash.slice(6)));selected=cleanTask(data.task);if(!selected.ids.length)throw Error();assignment=assignmentInfo(data);return true;}
@@ -58,16 +58,27 @@ function parseNames(raw){
  return {ids:[...ids],unknown,congo};
 }
 function setup(){
- round=null;display('<div class="row between"><h1>Настройка игры</h1><button id="records">Доска рекордов ↗</button></div><div class="grid"><section class="panel"><h2>Какие страны учим?</h2><div class="chips" id="regions"></div><label class="field" for="search">Список стран</label><input id="search" placeholder="Найти страну" type="search"><div class="list" id="list"></div><details><summary>Вставить список из задания</summary><div><label class="field" for="paste">Названия стран</label><textarea id="paste" placeholder="Италия, Франция, Южная Корея…"></textarea><button id="parse">Добавить страны</button><p id="parsed" role="status"></p></div></details></section><div><section class="panel"><h2>Правила раунда</h2><label class="field" for="ask">Что показывает компьютер?</label><select id="ask"></select><fieldset class="reply-options"><legend>Что отвечает игрок?</legend><div id="reply" class="chips"></div></fieldset><div id="methodBox"><label class="field" for="method">Способ ответа игрока</label><select id="method"><option value="choice">Выбор из 4 вариантов</option><option value="type">Ввод с клавиатуры</option></select></div><p class="count" id="count"></p><details id="selectedBox"><summary>Посмотреть выбранные страны</summary><div class="chips" id="chosen"></div></details><button id="start" class="primary wide">Начать раунд →</button></section><section class="panel"><h2>Общие задания</h2><div id="savedList">Загрузка…</div><label class="field" for="taskDate">Дата задания</label><input type="date" id="taskDate" required><p id="datePreview" class="muted"></p><label class="field" for="comment">Комментарий (по желанию)</label><input id="comment" maxlength="160" placeholder="Например, Европа — флаги"><div class="controls" style="margin-top:10px"><button id="saveTask">Сохранить задание</button><button id="link">Скопировать ссылку</button></div><div id="shareFallback"></div></section></div></div><p class="muted">Игрок · '+esc(session.name)+(cloud?'':' · локальная игра')+'</p><p class="error" id="error" role="alert"></p>');
+ round=null;display('<div class="row between"><h1>Настройка игры</h1><button id="records">Доска рекордов ↗</button></div><div class="grid setup-grid"><section class="panel countries-panel"><h2>Какие страны учим?</h2><div class="chips" id="regions"></div><label class="field" for="search">Список стран</label><input id="search" placeholder="Найти страну" type="search"><div class="list" id="list"></div><details><summary>Вставить список из задания</summary><div><label class="field" for="paste">Названия стран</label><textarea id="paste" placeholder="Италия, Франция, Южная Корея…"></textarea><button id="parse">Добавить страны</button><p id="parsed" role="status"></p></div></details></section><div><section class="panel"><h2>Правила раунда</h2><label class="field" for="ask">Что показывает компьютер?</label><select id="ask"></select><fieldset class="reply-options"><legend>Что отвечает игрок?</legend><div id="reply" class="chips"></div></fieldset><div id="methodBox"><label class="field" id="methodLabel" for="method"></label><select id="method"><option value="choice">Выбор из 4 вариантов</option><option value="type">Ввод с клавиатуры</option></select></div><p class="muted" id="fixedMethods"></p><p class="count" id="count"></p><details id="selectedBox"><summary>Посмотреть выбранные страны</summary><div class="chips" id="chosen"></div></details><p class="field-hint" id="startHint"></p><p class="error action-error" id="startError" role="alert"></p><button id="start" aria-describedby="startHint startError" class="primary wide">Начать раунд →</button></section><section class="panel"><h2>Общие задания</h2><div id="savedList">Загрузка…</div><label class="field" for="taskDate">На какую дату задание</label><input type="date" id="taskDate" required><p id="datePreview" class="muted"></p><label class="field" for="comment">Комментарий (по желанию)</label><input id="comment" maxlength="160" placeholder="Например, Европа — флаги"><div class="controls" style="margin-top:10px"><button id="saveTask" aria-describedby="saveHint saveError">Сохранить задание</button><button id="link">Скопировать ссылку</button></div><p class="field-hint" id="saveHint"></p><p class="error action-error" id="saveError" role="alert"></p><div id="shareFallback"></div></section></div></div><p class="muted">Игрок · '+esc(session.name)+(cloud?'':' · локальная игра')+'</p><p class="error" id="error" role="alert"></p>');
  function setFields(){ $('taskDate').value=assignment.date;$('comment').value=assignment.comment;preview(); }
- function preview(){const date=$('taskDate').value;$('datePreview').textContent=date?datedTitle(date):'Например, Задание на 25.11.2026';}
+ const countryHint='Отметьте хотя бы одну страну в списке, выберите часть света или нажмите «Все страны».';
+ function preview(){
+   const date=$('taskDate').value;
+   let dateHint='';
+   try{$('datePreview').textContent=datedTitle(date);}
+   catch{$('datePreview').textContent='Пример: Задание на 25.11.2026';dateHint='Выберите дату в календаре, например 25 ноября 2026 года.';}
+   const empty=!selected.ids.length;
+   $('start').disabled=empty;
+   $('startHint').textContent=empty?countryHint:'';
+   $('saveHint').textContent=[empty?'Для сохранения и ссылки сначала выберите страны.':'',dateHint].filter(Boolean).join(' ');
+   for(const id of ['link','saveTask'])$(id).disabled=empty||Boolean(dateHint);
+ }
  function readFields(){const date=$('taskDate').value;datedTitle(date);return {date,comment:$('comment').value.trim()};}
- $('taskDate').oninput=()=>{preview();if($('taskDate').value){assignment=readFields();persistSelection();}};
+ $('taskDate').oninput=()=>{preview();$('saveError').textContent='';if(!$('saveTask').disabled){assignment=readFields();persistSelection();}};
  $('comment').oninput=()=>{assignment.comment=$('comment').value.trim();persistSelection();};setFields();
  function update(){
    selected=cleanTask(selected);persistSelection();
    $('count').textContent='Выбрано стран: '+selected.ids.length+' из '+catalog.length;
-   for(const id of ['start','link','saveTask'])$(id).disabled=!selected.ids.length;
+   preview();$('startError').textContent='';$('saveError').textContent='';
    $('selectedBox').hidden=!selected.ids.length;
    $('chosen').replaceChildren();
    for(const c of catalog.filter(c=>selected.ids.includes(c.id))){const b=document.createElement('button');b.textContent=c.name+' ×';b.title='Убрать страну';b.onclick=()=>toggle([c.id],false);$('chosen').append(b);}
@@ -90,7 +101,13 @@ function setup(){
      box.onchange=()=>{selected.reply=(box.checked?[...replies,kind]:replies.filter(k=>k!==kind)).join('+');update();};
      label.append(box,name);$('reply').append(label);
    }
-   $('methodBox').hidden=!replies.some(textKind);$('method').value=selected.method;
+   const textParts=replies.filter(textKind);
+   $('methodBox').hidden=!textParts.length;$('method').value=selected.method;
+   $('methodLabel').textContent=textParts.length===2?'Как отвечать на название страны и столицу?':textParts[0]==='name'?'Как отвечать на название страны?':'Как отвечать на столицу?';
+   const fixed=[];
+   if(replies.includes('flag'))fixed.push('Флаг — выбрать из четырёх изображений.');
+   if(replies.includes('map'))fixed.push('Карта — нажать на страну.');
+   $('fixedMethods').textContent=fixed.join(' ');$('fixedMethods').hidden=!fixed.length;
  }
  function toggle(ids,add){const set=new Set(selected.ids);for(const id of ids)add?set.add(id):set.delete(id);selected.ids=[...set];update();}
  $('search').oninput=update;
@@ -103,9 +120,9 @@ function setup(){
   const sel=document.createElement('select');sel.setAttribute('aria-label','Выберите сохранённое задание');sel.append(new Option('Выберите сохранённое задание…',''));
   list.forEach((x,i)=>sel.append(new Option(x.title+(x.comment?' · '+x.comment:'')+' · '+x.task.ids.length+' стран · '+x.author,i)));sel.onchange=()=>{if(sel.value==='')return;const v=list[+sel.value];selected=cleanTask(v.task);assignment=assignmentInfo(v);setFields();update();};host.append(sel);
   }catch(e){host.textContent=errorMsg(e);}}
- $('saveTask').onclick=act(async()=>{assignment=readFields();await putTask(assignment.date,assignment.comment,cleanTask(selected));persistSelection();await refreshTasks();toast('Задание сохранено.');});
- $('link').onclick=act(async()=>{const url=setLink(readFields(),cleanTask(selected));try{await navigator.clipboard.writeText(url);toast('Ссылка скопирована.');}catch{const field=document.createElement('input');field.value=url;field.readOnly=true;field.setAttribute('aria-label','Ссылка на задание');$('shareFallback').replaceChildren(field);field.select();}});
- $('records').onclick=act(()=>board(selected));$('start').onclick=act(()=>begin(selected,false));update();refreshTasks();
+ $('saveTask').onclick=act(async()=>{assignment=readFields();await putTask(assignment.date,assignment.comment,cleanTask(selected));persistSelection();await refreshTasks();toast('Задание сохранено.');},'saveError');
+ $('link').onclick=act(async()=>{const url=setLink(readFields(),cleanTask(selected));try{await navigator.clipboard.writeText(url);toast('Ссылка скопирована.');}catch{const field=document.createElement('input');field.value=url;field.readOnly=true;field.setAttribute('aria-label','Ссылка на задание');$('shareFallback').replaceChildren(field);field.select();}},'saveError');
+ $('records').onclick=act(()=>board(selected));$('start').onclick=act(()=>begin(selected,false),'startError');update();refreshTasks();
 }
 const clock=ms=>{const seconds=Math.floor(ms/1000);return String(Math.floor(seconds/60)).padStart(2,'0')+':'+String(seconds%60).padStart(2,'0')+'.'+Math.floor((ms%1000)/100);};
 const flagEmoji=id=>String.fromCodePoint(...[...id].map(ch=>127397+ch.charCodeAt(0)));
@@ -116,7 +133,7 @@ function flag(id){
 }
 function showValue(host,kind,id){if(kind==='flag')host.append(flag(id));else if(kind==='map')drawMap(host,{highlight:id});else host.textContent=countries[id][kind];}
 async function begin(task,practice){
- const t=cleanTask(task);if(!t.ids.length)throw Error('Выберите хотя бы одну страну.');
+ const t=cleanTask(task);if(!t.ids.length)throw Error('Для старта отметьте хотя бы одну страну в списке или выберите часть света.');
  const v=await startRound(t,practice);round={...v,task:t,answers:[],practice,done:false,base:0};await question();
 }
 async function question(){

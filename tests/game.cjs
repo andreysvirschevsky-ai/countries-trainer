@@ -19,10 +19,28 @@ const assert=require('node:assert/strict');
    await page.locator('#nick').fill(testName);
    await page.locator('#pin').fill(testPin);await page.locator('#repeat').fill(testPin);
    await page.getByRole('button',{name:'Создать игрока'}).click();
+   await page.locator('#startHint').waitFor();
+   assert.match(await page.locator('#startHint').innerText(),/Отметьте хотя бы одну страну/);
+   assert.ok(await page.locator('#saveTask').isDisabled());
+   assert.ok((await page.locator('#list').boundingBox()).height>300);
    await page.locator('#search').fill('Франция');await page.getByLabel('Франция',{exact:true}).check();
    await page.locator('#ask').selectOption('name');
    await page.locator('#reply').getByText('Страна на карте').click();
+   assert.match(await page.locator('#fixedMethods').innerText(),/Карта — нажать на страну/);
+   await page.getByLabel('На какую дату задание').fill('');
+   assert.match(await page.locator('#saveHint').innerText(),/дату в календаре/);
+   assert.ok(await page.locator('#saveTask').isDisabled());assert.ok(await page.locator('#start').isEnabled());
    await page.locator('#taskDate').fill('2026-11-25');await page.locator('#comment').fill('Европа — флаги');
+   // Воспроизводим отказ прежней SQL-функции без обращения к рабочей базе.
+   await page.evaluate(()=>{
+     const original={api,startRound,putTask};
+     window.restoreApi=()=>{api=original.api;startRound=original.startRound;putTask=original.putTask;};
+     api=async()=>{throw Error('Некорректное задание.');};
+     startRound=task=>rpc('start',{task});putTask=(date,comment,task)=>rpc('save',{task,date,comment});
+   });
+   await page.locator('#start').click();assert.match(await page.locator('#startError').innerText(),/setup.sql/);
+   await page.locator('#saveTask').click();assert.match(await page.locator('#saveError').innerText(),/setup.sql/);
+   await page.evaluate(()=>window.restoreApi());
    await page.locator('#saveTask').click();
    const saved=page.locator('#savedList option').filter({hasText:'Задание на 25.11.2026'});
    await saved.waitFor({state:'attached'});assert.match(await saved.textContent(),/Европа — флаги/);

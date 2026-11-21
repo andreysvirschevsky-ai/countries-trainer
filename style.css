@@ -53,3 +53,12 @@ dialog h2{margin:0}
  #answerArea form .primary{padding-inline:12px}
  .prompt:has(> .flag){padding:16px;margin-bottom:18px}
 }
+
+.field-hint{font-size:14px;color:#405d56;line-height:1.45;margin:9px 0}
+.field-hint:empty,.action-error:empty{display:none}
+@media(min-width:761px){
+  .setup-grid{align-items:stretch}
+  .countries-panel{display:flex;flex-direction:column;min-width:0}
+  .countries-panel .list{flex:1 1 0;height:0;min-height:225px;max-height:none;align-content:start;grid-auto-rows:max-content}
+  .countries-panel>details{margin-top:12px}
+}

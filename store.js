@@ -32,7 +32,20 @@ async function rpc(action,payload={}){
     const fresh=await api('/auth/v1/token?grant_type=refresh_token',{refresh_token:session.refresh});
     remember({...session,token:fresh.access_token,refresh:fresh.refresh_token,expires:Date.now()+fresh.expires_in*1000});
   }
-  return api('/rest/v1/rpc/atlas_play',{action,payload},session.token);
+  try{return await api('/rest/v1/rpc/atlas_play',{action,payload},session.token);}
+  catch(err){
+    const msg=err.message;
+    const rejected=msg.includes('Некорректное задание');
+    const oldSave=action==='save'&&/null value in column "title"/i.test(msg);
+    if(oldSave||(rejected&&payload.task?.reply.includes('+'))){
+      throw Error('Supabase отклонил настройки. Проверьте версию базы: для нескольких ответов и сохранения задания по дате откройте SQL Editor в проекте игры, выполните актуальный supabase/setup.sql и повторите попытку. Менять выбранные страны или формат даты не требуется.');
+    }
+    if(rejected&&payload.task){
+      const t=payload.task;
+      throw Error('Supabase отклонил задание. Выбрано стран: '+t.ids.length+'. Компьютер показывает: '+labels[t.ask]+'. Игрок отвечает: '+replyKinds(t).map(k=>labels[k]).join(', ')+'. Проверьте, что config.js указывает на проект, в котором выполнен актуальный supabase/setup.sql.');
+    }
+    throw err;
+  }
 }
 async function pinHash(pin,salt){
   const key=await crypto.subtle.importKey('raw',bytes(pin),'PBKDF2',false,['deriveBits']);
@@ -63,7 +76,9 @@ const replyKinds=t=>String(t.reply).split('+');
 const textKind=k=>k==='name'||k==='capital';
 function cleanTask(t){
   const kinds=['name','capital','flag','map'];
-  if(!t||!Array.isArray(t.ids)||t.ids.some(id=>!Object.hasOwn(countries,id))||!kinds.includes(t.ask))throw Error('Некорректное задание.');
+  if(!t||!Array.isArray(t.ids))throw Error('В задании отсутствует список стран. Выберите страны заново.');
+  if(t.ids.some(id=>!Object.hasOwn(countries,id)))throw Error('В задании есть страна вне справочника. Создайте набор из стран, доступных в списке.');
+  if(!kinds.includes(t.ask))throw Error('Выберите подсказку в поле «Что показывает компьютер?».');
   const replies=[...new Set(replyKinds(t))].sort();
   if(replies.some(k=>!kinds.includes(k)||k===t.ask))throw Error('Выберите, что отвечает игрок.');
   const method=replies.some(textKind)&&t.method==='type'?'type':'choice';
@@ -78,6 +93,7 @@ function datedTitle(date){
 }
 async function getTasks(){return cloud?await rpc('tasks'):read('tasks',[]);}
 async function putTask(date,comment,task){
+  task=cleanTask(task);if(!task.ids.length)throw Error('Для сохранения выберите хотя бы одну страну.');
   const title=datedTitle(date);comment=comment.trim();
   if(comment.length>160)throw Error('Комментарий должен быть не длиннее 160 знаков.');
   if(cloud)return rpc('save',{date,comment,task});
