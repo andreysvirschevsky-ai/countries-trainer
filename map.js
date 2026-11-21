@@ -1,14 +1,14 @@
 // Робинсон. Параллели и меридианы служат только для проекции, карта не содержит подписей.
-function drawMap(host,{highlight=null,answer=null,cover=false,wrong=null}={}){
+function drawMap(host,{highlight=null,answer=null,cover=false,wrong=null,review=false}={}){
   const ns='http://www.w3.org/2000/svg';
   const el=(tag,attrs,parent)=>{const n=document.createElementNS(ns,tag);for(const [k,v] of Object.entries(attrs))n.setAttribute(k,v);parent.append(n);return n;};
   host.replaceChildren();host.className='map-box'+(answer?' map-active':'');
   const svg=el('svg',{viewBox:'0 0 1000 500',role:'img','aria-label':'Цветная политическая карта мира без подписей'},host);
   const group=el('g',{},svg),palette=['#cfaf8d','#c8cc94','#e6c079','#94beb3','#d99d86','#b1b9ce','#b1c990'];
-  const fill=id=>id===highlight?'#df602d':id===wrong?'#985566':null;
+  const fill=id=>id===highlight?(review?'var(--map-correct)':'#df602d'):id===wrong?'var(--map-wrong)':null;
   const ys=cover?'#214e4c':'#526f68';
   for(const [id,path,col] of WORLD.shapes){
-    el('path',{d:path,fill:fill(id)||palette[col%7],stroke:id===highlight?'#4b241a':ys,'stroke-width':id===highlight?1.4:0.45,'stroke-linejoin':'round','vector-effect':'non-scaling-stroke','data-id':id},group);
+    el('path',{d:path,fill:fill(id)||palette[col%7],stroke:id===highlight?(review?'#204e3b':'#4b241a'):ys,'stroke-width':id===highlight?1.4:0.45,'stroke-linejoin':'round','vector-effect':'non-scaling-stroke','data-id':id},group);
   }
   const pins=[];
   if(!cover){

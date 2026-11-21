@@ -84,7 +84,9 @@ dialog h2{margin:0}
 .review-cards figcaption{font-size:13px;font-weight:bold}
 .review-cards .review-picked{border-left:4px solid #985566}
 .review-cards .review-correct{border-left:4px solid #36765d}
-.answer-review[data-kind=map] .review-correct{border-color:#df602d}
+.answer-review[data-kind=map]{--map-correct:#36765d;--map-wrong:#a74746}
+.answer-review[data-kind=map] .review-correct{border-color:var(--map-correct)}
+.answer-review[data-kind=map] .review-picked{border-color:var(--map-wrong)}
 .answer-review[data-kind=flag] figure{background:#c6d6de}
 .answer-review .flag-img{height:clamp(55px,10vh,95px);max-width:100%}
 .answer-review .map-box{margin-top:8px}
@@ -94,7 +96,7 @@ dialog h2{margin:0}
 
 /* Высота карты зависит от места, оставшегося после подсказки, ответов и кнопок. */
 body:has(.map-quiz #feedback:empty){
-  display:flex;flex-direction:column;min-height:100dvh
+  display:flex;flex-direction:column;height:100dvh
 }
 body:has(.map-quiz #feedback:empty)>header{flex:none;margin-block:0}
 body:has(.map-quiz #feedback:empty)>main{
@@ -122,7 +124,7 @@ body:has(.map-quiz #feedback:empty)>main{
 .map-quiz .other-answers form:has(button){grid-template-columns:minmax(0,1fr) auto}
 .map-quiz #answerArea .answers .flag-img{height:36px}
 .map-quiz:has(#feedback:empty) .map-box:not(.expanded-map){
-  flex:1 0 auto;height:auto;min-height:clamp(115px,22dvh,220px)
+  flex:1 0 auto;height:auto;min-height:clamp(115px,18dvh,180px)
 }
 .map-quiz:has(#feedback:empty) .map-box svg{position:absolute;inset:0}
 .map-quiz:has(#feedback:empty) .panel>.round-actions{margin-top:8px;padding-top:6px}
@@ -131,4 +133,11 @@ body:has(.map-quiz #feedback:empty)>main{
   .map-quiz .other-answers{row-gap:0}
   .map-quiz:has(#feedback:empty) .panel>.round-actions{gap:4px}
   .map-quiz .round-actions button{padding:7px 9px}
+}
+
+@media(max-height:720px){
+  .map-quiz:has(#feedback:empty) .prompt:has(>.flag){padding:3px;margin:0 0 4px}
+  .map-quiz:has(#feedback:empty) .prompt>.flag{font-size:16px}
+  .map-quiz:has(#feedback:empty) .prompt .flag-img{height:45px}
+  .map-quiz:has(#feedback:empty) h2{font-size:22px;margin:0 0 4px}
 }

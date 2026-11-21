@@ -168,7 +168,7 @@ function showAnswerReview(host,id,task,review){
    card(caption,correct&&typed?typed:displayName(id),id,'review-correct');
    if(kind==='map'){
      const map=document.createElement('div');section.append(map);
-     drawMap(map,{highlight:id,wrong:correct?null:picked});
+     drawMap(map,{highlight:id,wrong:correct?null:picked,review:true});
    }
    host.append(section);
  }
