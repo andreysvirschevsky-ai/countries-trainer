@@ -63,11 +63,11 @@ const assert=require('node:assert/strict');
    };
    await choose('IT');await page.locator('#answerArea .answers button').filter({hasText:'🇫🇷'}).click();
    await page.locator('#check').click();assert.match(await page.locator('#feedback').innerText(),/Неверно!.*страна на карте/s);
-   await page.locator('#feedback button').click();assert.match(await page.locator('.metrics').innerText(),/0 \/ 1/);
+   await page.locator('#feedback > button.primary').click();assert.match(await page.locator('.metrics').innerText(),/0 \/ 1/);
    for(let i=0;i<2;i++){
      await page.locator('#again').click();await choose('FR');
      await page.locator('#answerArea .answers button').filter({hasText:'🇫🇷'}).click();
-     await page.locator('#check').click();await page.locator('#feedback button').click();
+     await page.locator('#check').click();await page.locator('#feedback > button.primary').click();
    }
    assert.match(await page.locator('#progressInfo').innerText(),/2 верных ответа\): 1/);
    await page.locator('#scores').click();await page.getByRole('button',{name:'Все задания'}).click();
@@ -82,6 +82,35 @@ const assert=require('node:assert/strict');
    assert.equal(await page.locator('#prompt').evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(198, 214, 222)');
    const input=await page.locator('#typed-name').boundingBox(),actions=await page.locator('.round-actions').boundingBox();
    assert.ok(actions.y>input.y+input.height+10);
+   await page.locator('#typed-name').fill('Моя догадка');
+   await page.getByRole('button',{name:'Ответить',exact:true}).click();
+   assert.match(await page.locator('#feedback').innerText(),/Моя догадка/);
+   assert.equal(await page.locator('#prompt .flag').count(),1);
+   for(const ask of ['flag','name','capital','map']){
+     for(const reply of ['flag','name','capital','map'].filter(k=>k!==ask)){
+       await page.evaluate(({ask,reply})=>begin({ids:['FR'],ask,reply,method:'choice'},false),{ask,reply});
+       if(reply==='map')await choose('IT');
+       else{
+         const wrong=page.locator('#answerArea .answers button').filter({hasNotText:reply==='flag'?'🇫🇷':reply==='capital'?'Париж':'Франция'}).first();
+         await wrong.click();
+       }
+       const review=page.locator('#feedback .answer-review');
+       assert.equal(await review.getAttribute('data-kind'),reply);
+       assert.ok(await review.locator('.review-picked').isVisible());
+       assert.match(await review.locator('.review-correct').innerText(),reply==='capital'?/Париж/:/Франция/);
+       if(reply==='flag'){
+         assert.equal(await review.locator('.flag').count(),2);
+         await page.locator('#feedback > button.primary').click();
+         await page.locator('#mistakes summary').click();
+         await page.locator('#mistakes .review-correct .flag').waitFor();
+       }
+       if(reply==='map')assert.ok(await review.locator('.map-box svg').isVisible());
+     }
+   }
+   await page.evaluate(()=>begin({ids:['FR'],ask:'name',reply:'flag',method:'choice'},false));
+   await page.locator('#skip').click();
+   assert.match(await page.locator('#feedback .review-picked').innerText(),/Нет ответа/);
+   assert.equal(await page.locator('#feedback .review-correct .flag').count(),1);
    assert.deepEqual(errors,[]);
  }finally{await browser.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});

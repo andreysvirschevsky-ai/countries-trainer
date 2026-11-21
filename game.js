@@ -132,9 +132,36 @@ function flag(id){
  img.className='flag-img';img.alt='Флаг';img.onload=()=>wrap.replaceChildren(img);img.src='https://flagcdn.com/w320/'+id.toLowerCase()+'.png';return wrap;
 }
 function showValue(host,kind,id){if(kind==='flag')host.append(flag(id));else if(kind==='map')drawMap(host,{highlight:id});else host.textContent=countries[id][kind];}
+function showAnswerReview(host,id,task,review){
+ for(const kind of replyKinds(task)){
+   const picked=review.choices[kind],typed=review.typed[kind],correct=picked===id;
+   const section=document.createElement('section');section.className='answer-review';section.dataset.kind=kind;
+   const heading=document.createElement('h3');heading.textContent=labels[kind];section.append(heading);
+   const cards=document.createElement('div');cards.className='review-cards';section.append(cards);
+   function card(caption,value,code,marker){
+     const figure=document.createElement('figure'),label=document.createElement('figcaption');
+     label.textContent=caption;figure.className=marker;figure.append(label);
+     if(kind==='flag'&&code){
+       const image=flag(code);image.setAttribute('role','img');image.setAttribute('aria-label','Флаг: '+countries[code].name);figure.append(image);
+     }
+     const text=document.createElement('span');text.textContent=value;figure.append(text);cards.append(figure);
+   }
+   const displayName=code=>kind==='capital'?countries[code].capital:countries[code].name;
+   if(!correct){
+     card('Ваш ответ',typed|| (picked?displayName(picked):'Нет ответа'),picked,'review-picked');
+   }
+   const caption=correct?'Ваш выбор — верно':kind==='flag'?'Верный флаг':kind==='map'?'Где находится страна':'Верный вариант';
+   card(caption,correct&&typed?typed:displayName(id),id,'review-correct');
+   if(kind==='map'){
+     const map=document.createElement('div');section.append(map);
+     drawMap(map,{highlight:id,wrong:correct?null:picked});
+   }
+   host.append(section);
+ }
+}
 async function begin(task,practice){
  const t=cleanTask(task);if(!t.ids.length)throw Error('Для старта отметьте хотя бы одну страну в списке или выберите часть света.');
- const v=await startRound(t,practice);round={...v,task:t,answers:[],practice,done:false,base:0};await question();
+ const v=await startRound(t,practice);round={...v,task:t,answers:[],reviews:{},practice,done:false,base:0};await question();
 }
 async function question(){
  const r=round,i=r.answers.length,id=r.order[i],t=r.task,parts=replyKinds(t);
@@ -142,7 +169,7 @@ async function question(){
  display('<section class="quiz '+(hasMap?'map-quiz':'')+'"><div class="row between"><span>'+(r.practice?'Повтор ошибок':'Раунд')+' · Страна '+(i+1)+' из '+r.order.length+'</span><b class="timer" id="timer"></b></div><progress value="'+i+'" max="'+r.order.length+'"></progress><div class="panel"><h2>'+(multi?'Ответьте на все части':instructions[parts[0]])+'</h2><div class="prompt" id="prompt"></div><div id="answerArea"></div><div class="controls round-actions"><button class="primary" id="check" hidden>Проверить ответы</button><button id="skip">Не знаю</button><button id="exit">Выйти из раунда</button></div><div id="feedback" aria-live="polite"></div><p id="error" class="error" role="alert"></p></div></section>');
  $('exit').onclick=async()=>{if(await safeLeave())setup();};
  showValue($('prompt'),t.ask,id);
- const area=$('answerArea'),check=$('check'),choices={};
+ const area=$('answerArea'),check=$('check'),choices={},typedAnswers={};
  area.inert=true;$('skip').disabled=true;check.hidden=!multi;check.disabled=true;
  let ready=false,busy=false,answered=false,started=0;
  $('timer').textContent=clock(r.base);
@@ -162,6 +189,7 @@ async function question(){
      if(!multi){const label=document.createElement('label');label.className='field';label.htmlFor=input.id;label.textContent='Ответ игрока';block.append(label);}
      form.append(input);block.append(form);
      function readText(){
+       typedAnswers[kind]=input.value.trim();
        const typed=normalize(input.value),c=countries[id],accepted=kind==='name'?[c.name,...c.aliases]:c.capitals;
        if(typed)choices[kind]=accepted.some(n=>normalize(n)===typed)?id:null;
        else delete choices[kind];
@@ -194,14 +222,16 @@ async function question(){
    try{
      const a=cloud?await rpc('answer',{id:r.id,index:i,choices,choice:choices[parts[0]]}):{id,ok:parts.every(k=>choices[k]===id),ms:localMs};
      if(round!==r||!area.isConnected)return;
-     answered=true;r.answers.push(a);r.base+=a.ms;
+     answered=true;r.reviews[id]={choices:{...choices},typed:{...typedAnswers}};r.answers.push(a);r.base+=a.ms;
      if(i+1===r.order.length&&!cloud)await finishLocal(r);
      $('timer').textContent=clock(r.base);$('skip').hidden=true;check.hidden=true;area.replaceChildren();$('error').textContent='';
      const fb=$('feedback');fb.className='feedback'+(a.ok?'':' wrong');
      const missed=parts.filter(k=>choices[k]!==id);
      fb.innerHTML='<strong>'+(a.ok?'Верно!':'Неверно!')+'</strong>'+(multi&&missed.length?' <span>('+missed.map(k=>labels[k].toLowerCase()).join(', ')+')</span>':'')+'<p>'+esc(countries[id].name)+' · '+esc(countries[id].capital)+'</p>';
+     showAnswerReview(fb,id,t,r.reviews[id]);
      const next=document.createElement('button');next.className='primary';next.textContent=i+1===r.order.length?'Посмотреть результат':'Следующий вопрос →';fb.append(next);
-     next.onclick=act(async()=>{if(i+1===r.order.length){r.done=true;await results();}else await question();});next.focus();
+     next.onclick=act(async()=>{if(i+1===r.order.length){r.done=true;await results();}else await question();});fb.tabIndex=-1;fb.focus({preventScroll:true});
+     if(fb.getBoundingClientRect().top>window.innerHeight*0.7)fb.scrollIntoView({block:'start'});
    }catch(e){if(area.isConnected){$('error').textContent=errorMsg(e);busy=false;area.inert=false;check.disabled=false;$('skip').disabled=false;}}
  }
  try{await arm();}catch(e){if(area.isConnected){$('error').textContent=errorMsg(e);const retry=document.createElement('button');retry.textContent='Открыть вопрос повторно';retry.onclick=act(question);$('error').append(retry);}}
@@ -209,7 +239,21 @@ async function question(){
 async function results(){
  const r=round,n=r.answers.filter(a=>a.ok).length,miss=r.answers.filter(a=>!a.ok);
  display('<section class="quiz panel"><h1>Раунд завершён</h1><p>'+esc(modes(r.task))+'</p><div class="metrics"><div><b>'+n+' / '+r.order.length+'</b>верно</div><div><b>'+Math.round(100*n/r.order.length)+'%</b>точность</div><div><b>'+clock(r.base)+'</b>время ответов</div><div><b>'+(r.base/1000/r.order.length).toFixed(1)+'</b>секунд на страну</div></div><p id="progressInfo"></p><div id="mistakes"></div><div class="controls"><button class="primary" id="again">Сыграть ещё раз</button>'+(miss.length?'<button id="retry">Повторить ошибки</button>':'')+'<button id="settings">К настройкам</button><button id="scores">Рекорды</button></div><p class="error" id="error"></p></section>');
- if(miss.length){$('mistakes').innerHTML='<h2>Страны для повторения</h2>';for(const a of miss){const p=document.createElement('p');p.textContent=countries[a.id].name+' · '+countries[a.id].capital;if(replyKinds(r.task).includes('flag'))p.append(' ',flag(a.id));$('mistakes').append(p);}}
+ if(miss.length){
+   $('mistakes').innerHTML='<h2>Страны для повторения</h2>';
+   for(const a of miss){
+     const details=document.createElement('details'),summary=document.createElement('summary');
+     summary.textContent=countries[a.id].name+' · '+countries[a.id].capital;details.append(summary);
+     details.addEventListener('toggle',()=>{
+       if(!details.open||details.children.length>1)return;
+       if(r.task.ask==='map'||r.task.ask==='flag'){
+         const prompt=document.createElement('div');prompt.className='prompt';details.append(prompt);showValue(prompt,r.task.ask,a.id);
+       }
+       showAnswerReview(details,a.id,r.task,r.reviews[a.id]);
+     });
+     $('mistakes').append(details);
+   }
+ }
  $('again').onclick=act(()=>begin(r.task,r.practice));if(miss.length)$('retry').onclick=act(()=>begin({...r.task,ids:miss.map(a=>a.id)},true));
  $('settings').onclick=setup;$('scores').onclick=act(()=>board(selected));
  const node=$('progressInfo');try{const me=(await boardData(r.task)).find(x=>x.id===session.id);node.textContent='Верно хотя бы раз: '+(me?.once||0)+' · Выучено стран (2 верных ответа): '+(me?.learned||0)+' из 195.'+(r.practice?' Повтор ошибок — тренировочный раунд.':'');}catch(e){node.textContent=errorMsg(e);}

@@ -62,3 +62,16 @@ dialog h2{margin:0}
   .countries-panel .list{flex:1 1 0;height:0;min-height:225px;max-height:none;align-content:start;grid-auto-rows:max-content}
   .countries-panel>details{margin-top:12px}
 }
+
+.answer-review{margin:12px 0}
+.answer-review h3{margin:0 0 6px;font-size:15px}
+.review-cards{display:flex;flex-wrap:wrap;gap:10px}
+.review-cards figure{margin:0;padding:8px 12px;border-radius:8px;background:var(--paper);display:grid;align-content:start;gap:6px;overflow-wrap:anywhere}
+.review-cards figcaption{font-size:13px;font-weight:bold}
+.review-cards .review-picked{border-left:4px solid #985566}
+.review-cards .review-correct{border-left:4px solid #36765d}
+.answer-review[data-kind=map] .review-correct{border-color:#df602d}
+.answer-review[data-kind=flag] figure{background:#c6d6de}
+.answer-review .flag-img{height:clamp(55px,10vh,95px);max-width:100%}
+.answer-review .map-box{margin-top:8px}
+.feedback>.primary{margin-top:6px}

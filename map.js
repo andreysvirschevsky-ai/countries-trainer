@@ -44,6 +44,6 @@ function drawMap(host,{highlight=null,answer=null,cover=false,wrong=null}={}){
   svg.onpointermove=e=>{if(!drag)return;const dx=e.clientX-drag.x,dy=e.clientY-drag.y;if(Math.hypot(dx,dy)>4)moved=true;if(moved){x=drag.ox-dx*drag.unit;y=drag.oy-dy*drag.unit;viewport();}};
   svg.onpointerup=e=>{if(!drag)return;const id=drag.start;drag=null;if(!moved&&answer&&countries[id])choose(id);};
   svg.onpointercancel=()=>{drag=null;};
-  const pin=highlight&&WORLD.pins.find(p=>p[0]===highlight);
+  const pin=highlight&&!wrong&&WORLD.pins.find(p=>p[0]===highlight);
   if(pin){x=pin[1]-35;y=pin[2]-17.5;w=70;viewport();}
 }
