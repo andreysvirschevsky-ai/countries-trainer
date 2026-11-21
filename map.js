@@ -23,7 +23,7 @@ function drawMap(host,{highlight=null,answer=null,cover=false,wrong=null}={}){
   function point(ev){const p=svg.createSVGPoint();p.x=ev.clientX;p.y=ev.clientY;return p.matrixTransform(svg.getScreenCTM().inverse());}
   function zoom(f,p={x:x+w/2,y:y+w/4}){const nw=Math.max(1.4,Math.min(1000,w*f));x=p.x-(p.x-x)*nw/w;y=p.y-(p.y-y)*nw/w;w=nw;viewport();}
   const controls=document.createElement('div');controls.className='map-controls';host.append(controls);
-  for(const [label,fn,title] of [['+',()=>zoom(.5),'Приблизить'],['−',()=>zoom(2),'Отдалить'],['↺',()=>{x=y=0;w=1000;viewport();},'Вся карта']]){
+  for(const [label,fn,title] of [['+',()=>zoom(1/1.35),'Приблизить'],['−',()=>zoom(1.35),'Отдалить'],['↺',()=>{x=y=0;w=1000;viewport();},'Вся карта']]){
     const b=document.createElement('button');b.type='button';b.textContent=label;b.title=title;b.setAttribute('aria-label',title);b.onclick=fn;controls.append(b);
   }
   const expand=document.createElement('button');expand.type='button';expand.textContent='Развернуть карту';controls.append(expand);
@@ -39,7 +39,12 @@ function drawMap(host,{highlight=null,answer=null,cover=false,wrong=null}={}){
     for(const node of group.querySelectorAll('[data-id="'+id+'"]'))node.classList.add('picked-country');
     selectedId=id;expandMap(false);answer(id);
   }
-  svg.onwheel=e=>{e.preventDefault();zoom(e.deltaY>0?1.3:1/1.3,point(e));};
+  svg.onwheel=e=>{
+    e.preventDefault();
+    const unit=e.deltaMode===1?16:e.deltaMode===2?svg.clientHeight:1;
+    const delta=Math.max(-200,Math.min(200,e.deltaY*unit));
+    zoom(Math.exp(delta*.0025),point(e));
+  };
   svg.onpointerdown=e=>{if(!e.isPrimary)return;drag={x:e.clientX,y:e.clientY,ox:x,oy:y,unit:1/svg.getScreenCTM().a,start:e.target.dataset.id};moved=false;svg.setPointerCapture(e.pointerId);};
   svg.onpointermove=e=>{if(!drag)return;const dx=e.clientX-drag.x,dy=e.clientY-drag.y;if(Math.hypot(dx,dy)>4)moved=true;if(moved){x=drag.ox-dx*drag.unit;y=drag.oy-dy*drag.unit;viewport();}};
   svg.onpointerup=e=>{if(!drag)return;const id=drag.start;drag=null;if(!moved&&answer&&countries[id])choose(id);};

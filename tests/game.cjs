@@ -95,6 +95,26 @@ const assert=require('node:assert/strict');
    await page.getByRole('button',{name:'Ответить',exact:true}).click();
    assert.match(await page.locator('#feedback').innerText(),/Моя догадка/);
    assert.equal(await page.locator('#prompt .flag').count(),1);
+   // Проверяем многосоставной вопрос при обычном масштабе страницы.
+   for(const [width,height] of [[1366,768],[1024,600],[390,667]]){
+     await page.setViewportSize({width,height});
+     for(const method of ['choice','type']){
+       await page.evaluate(method=>begin({ids:['FR'],ask:'flag',reply:'capital+map+name',method},false),method);
+       assert.deepEqual(await page.locator('#answerArea section').evaluateAll(nodes=>nodes.map(n=>n.dataset.kind)),['name','capital','map']);
+       const mapBox=await map.boundingBox(),fields=await page.locator('.other-answers').boundingBox();
+       assert.ok(mapBox.y>=fields.y+fields.height-1);
+       assert.ok(mapBox.height>=115);
+       const doc=await page.evaluate(()=>[document.documentElement.scrollWidth,document.documentElement.scrollHeight]);
+       assert.ok(doc[0]<=width+1 && doc[1]<=height+1,'Лишняя прокрутка '+JSON.stringify({width,height,method,doc}));
+       const svg=map.locator('svg');
+       await map.getByRole('button',{name:'Приблизить'}).click();
+       const zoomWidth=Number((await svg.getAttribute('viewBox')).split(' ')[2]);
+       assert.ok(zoomWidth>500 && zoomWidth<1000);
+       await map.getByRole('button',{name:'Вся карта'}).click();
+       assert.equal(await svg.getAttribute('viewBox'),'0 0 1000 500');
+     }
+   }
+   await page.setViewportSize({width:1440,height:900});
    for(const ask of ['flag','name','capital','map']){
      for(const reply of ['flag','name','capital','map'].filter(k=>k!==ask)){
        await page.evaluate(({ask,reply})=>begin({ids:['FR'],ask,reply,method:'choice'},false),{ask,reply});

@@ -142,8 +142,12 @@ function flag(id){
  img.className='flag-img';img.alt='Флаг';img.onload=()=>wrap.replaceChildren(img);img.src='https://flagcdn.com/w320/'+id.toLowerCase()+'.png';return wrap;
 }
 function showValue(host,kind,id){if(kind==='flag')host.append(flag(id));else if(kind==='map')drawMap(host,{highlight:id});else host.textContent=countries[id][kind];}
+function answerOrder(task){
+ const selected=replyKinds(task);
+ return Object.keys(labels).filter(kind=>selected.includes(kind));
+}
 function showAnswerReview(host,id,task,review){
- for(const kind of replyKinds(task)){
+ for(const kind of answerOrder(task)){
    const picked=review.choices[kind],typed=review.typed[kind],correct=picked===id;
    const section=document.createElement('section');section.className='answer-review';section.dataset.kind=kind;
    const heading=document.createElement('h3');heading.textContent=labels[kind];section.append(heading);
@@ -174,13 +178,18 @@ async function begin(task,practice){
  const v=await startRound(t,practice);round={...v,task:t,answers:[],reviews:{},practice,done:false,base:0};await question();
 }
 async function question(){
- const r=round,i=r.answers.length,id=r.order[i],t=r.task,parts=replyKinds(t);
+ const r=round,i=r.answers.length,id=r.order[i],t=r.task,parts=answerOrder(t);
  const multi=parts.length>1,hasMap=t.ask==='map'||parts.includes('map');
  display('<section class="quiz '+(hasMap?'map-quiz':'')+'"><div class="row between"><span>'+(r.practice?'Повтор ошибок':'Раунд')+' · Страна '+(i+1)+' из '+r.order.length+'</span><b class="timer" id="timer"></b></div><progress value="'+i+'" max="'+r.order.length+'"></progress><div class="panel"><h2>'+(multi?'Ответьте на все части':instructions[parts[0]])+'</h2><div class="prompt" id="prompt"></div><div id="answerArea"></div><div class="controls round-actions"><button class="primary" id="check" hidden>Проверить ответы</button><button id="skip">Не знаю</button><button id="exit">Выйти из раунда</button></div><div id="feedback" aria-live="polite"></div><p id="error" class="error" role="alert"></p></div></section>');
  $('exit').onclick=async()=>{if(await safeLeave())setup();};
  showValue($('prompt'),t.ask,id);
  const area=$('answerArea'),check=$('check'),choices={},typedAnswers={};
  area.inert=true;$('skip').disabled=true;check.hidden=!multi;check.disabled=true;
+ let otherAnswers=area;
+ if(hasMap){
+   otherAnswers=document.createElement('div');otherAnswers.className='other-answers';area.append(otherAnswers);
+   if(t.ask==='map')area.after($('prompt'));
+ }
  let ready=false,busy=false,answered=false,started=0;
  $('timer').textContent=clock(r.base);
  function capture(kind,value){
@@ -189,7 +198,9 @@ async function question(){
    else return submit();
  }
  for(const kind of parts){
-   const block=document.createElement('section');area.append(block);
+   const block=document.createElement('section');
+   block.dataset.kind=kind;
+   (kind==='map'?area:otherAnswers).append(block);
    if(multi){const heading=document.createElement('h3');heading.textContent=instructions[kind];block.append(heading);}
    if(kind==='map'){
      const map=document.createElement('div');block.append(map);drawMap(map,{answer:code=>capture(kind,code)});
