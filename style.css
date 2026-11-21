@@ -102,7 +102,13 @@ dialog h2{margin:0}
 .feedback .review-cards figure{padding:6px 9px}
 .feedback .answer-review .flag-img{height:clamp(48px,8vh,74px)}
 .quiz .panel:has(.feedback)>h2{display:none}
-.map-quiz .feedback>.map-box:not(.expanded-map){height:clamp(190px,48dvh,500px);margin:0}
+.map-quiz .feedback{
+  flex:1;grid-template-rows:auto auto minmax(clamp(115px,18dvh,180px),1fr);
+  margin:4px 0 0;padding:8px 0 0
+}
+.map-quiz .feedback>.verdict,.map-quiz .feedback>.review-parts{margin-inline-start:8px}
+.map-quiz .feedback>.primary,.map-quiz .feedback>.review-parts{margin-inline-end:8px}
+.map-quiz .feedback>.map-box:not(.expanded-map){align-self:stretch;margin:0}
 @media(max-width:440px){
   .feedback{padding:10px;gap:8px}
   .feedback>.primary{max-width:44vw;padding:8px 10px}
@@ -111,20 +117,20 @@ dialog h2{margin:0}
 #mistakes:not(:empty){margin-block-end:24px}
 
 /* Высота карты зависит от места, оставшегося после подсказки, ответов и кнопок. */
-body:has(.map-quiz #feedback:empty){
+body:has(.map-quiz){
   display:flex;flex-direction:column;height:100dvh
 }
-body:has(.map-quiz #feedback:empty)>header{flex:none;margin-block:0}
-body:has(.map-quiz #feedback:empty)>main{
+body:has(.map-quiz)>header{flex:none;margin-block:0}
+body:has(.map-quiz)>main{
   flex:1;display:flex;flex-direction:column;margin-block:0;min-height:0;padding-bottom:8px
 }
-.map-quiz:has(#feedback:empty),
-.map-quiz:has(#feedback:empty)>.panel,
+.map-quiz,
+.map-quiz>.panel,
 .map-quiz #answerArea:has(.map-active),
 .map-quiz #answerArea section[data-kind=map]{
   display:flex;flex-direction:column;flex:1
 }
-.map-quiz:has(#feedback:empty){margin:0;width:100%}
+.map-quiz{margin:0;width:100%}
 .other-answers>section+section{border-top:2px solid #a2b9ae;padding-top:6px}
 @media(min-width:560px){
   .map-quiz .other-answers{display:flex;gap:14px}
@@ -142,20 +148,20 @@ body:has(.map-quiz #feedback:empty)>main{
 .map-quiz .other-answers form{grid-template-columns:minmax(0,1fr);margin:0 0 6px}
 .map-quiz .other-answers form:has(button){grid-template-columns:minmax(0,1fr) auto}
 .map-quiz #answerArea .answers .flag-img{height:36px}
-.map-quiz:has(#feedback:empty) .map-box:not(.expanded-map){
+.map-quiz .map-box:not(.expanded-map){
   flex:1 0 auto;height:auto;min-height:clamp(115px,18dvh,180px)
 }
-.map-quiz:has(#feedback:empty) .map-box svg{position:absolute;inset:0}
-.map-quiz:has(#feedback:empty) .panel>.round-actions{margin-top:8px;padding-top:6px}
+.map-quiz .map-box svg{position:absolute;inset:0}
+.map-quiz .panel>.round-actions{margin-top:8px;padding-top:6px}
 .map-quiz #answerArea h3{font-size:16px;margin:3px 0 4px}
 @media(max-width:520px){
-  .map-quiz:has(#feedback:empty) .panel>.round-actions{gap:4px}
+  .map-quiz .panel>.round-actions{gap:4px}
   .map-quiz .round-actions button{padding:7px 9px}
 }
 
 @media(max-height:720px){
-  .map-quiz:has(#feedback:empty) .prompt:has(>.flag){padding:3px;margin:0 0 4px}
-  .map-quiz:has(#feedback:empty) .prompt>.flag{font-size:16px}
-  .map-quiz:has(#feedback:empty) .prompt .flag-img{height:45px}
-  .map-quiz:has(#feedback:empty) h2{font-size:22px;margin:0 0 4px}
+  .map-quiz .prompt:has(>.flag){padding:3px;margin:0 0 4px}
+  .map-quiz .prompt>.flag{font-size:16px}
+  .map-quiz .prompt .flag-img{height:45px}
+  .map-quiz h2{font-size:22px;margin:0 0 4px}
 }

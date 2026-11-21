@@ -125,7 +125,7 @@ const assert=require('node:assert/strict');
        assert.equal(await svg.getAttribute('viewBox'),'0 0 1000 500');
      }
    }
-   for(const [width,height] of [[1366,768],[390,667]]){
+   for(const [width,height] of [[1920,1080],[1366,768],[390,667]]){
      await page.setViewportSize({width,height});
      for(const ask of ['flag','map']){
        const reply=ask==='map'?'capital+flag+name':'capital+map+name';
@@ -136,6 +136,14 @@ const assert=require('node:assert/strict');
          const box=await next.boundingBox(),mapBox=await page.locator('#feedback .map-box').boundingBox();
          assert.ok(box.y>=0 && box.y+box.height<=height);
          assert.ok(box.y+box.height<=mapBox.y);
+         assert.ok(mapBox.width>=width-48,'Карта должна занимать ширину панели');
+         assert.ok(mapBox.y+mapBox.height>=height-100,'Под картой осталось свободное место');
+         if(height>=1000)assert.ok(mapBox.height>height*.5,'На большом экране карта слишком низкая');
+         const feedbackMap=page.locator('#feedback .map-box');
+         await feedbackMap.getByRole('button',{name:'Развернуть карту'}).click();
+         const expanded=await feedbackMap.boundingBox();
+         assert.ok(Math.abs(expanded.height-height)<2 && Math.abs(expanded.width-width)<2);
+         await feedbackMap.getByRole('button',{name:'Свернуть карту'}).click();
          const cards=await page.locator('#feedback .answer-review').evaluateAll(nodes=>nodes.map(n=>n.getBoundingClientRect().toJSON()));
          assert.ok(cards.every(card=>card.bottom<=mapBox.y));
          if(width>600)assert.ok(cards.every(card=>card.top===cards[0].top));
