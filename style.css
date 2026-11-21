@@ -89,3 +89,5 @@ dialog h2{margin:0}
 .answer-review .flag-img{height:clamp(55px,10vh,95px);max-width:100%}
 .answer-review .map-box{margin-top:8px}
 .feedback>.primary{margin-top:6px}
+
+#mistakes:not(:empty){margin-block-end:24px}

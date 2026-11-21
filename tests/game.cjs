@@ -110,8 +110,18 @@ const assert=require('node:assert/strict');
        if(reply==='flag'){
          assert.equal(await review.locator('.flag').count(),2);
          await page.locator('#feedback > button.primary').click();
-         await page.locator('#mistakes summary').click();
-         await page.locator('#mistakes .review-correct .flag').waitFor();
+         for(const width of [390,1440]){
+           await page.setViewportSize({width,height:900});
+           const lastCountry=page.locator('#mistakes details').last();
+           for(const open of [false,true]){
+             if(open)await lastCountry.locator('summary').click();
+             if(open)await lastCountry.locator('.review-correct .flag').waitFor();
+             const row=await lastCountry.boundingBox();
+             const button=await page.locator('#again').boundingBox();
+             assert.ok(button.y-(row.y+row.height)>=24);
+           }
+           await lastCountry.locator('summary').click();
+         }
        }
        if(reply==='map')assert.ok(await review.locator('.map-box svg').isVisible());
      }
