@@ -109,8 +109,11 @@ body:has(.map-quiz #feedback:empty)>main{
   display:flex;flex-direction:column;flex:1
 }
 .map-quiz:has(#feedback:empty){margin:0;width:100%}
-.map-quiz .other-answers{
-  display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,245px),1fr));gap:6px 16px
+.other-answers>section+section{border-top:2px solid #a2b9ae;padding-top:6px}
+@media(min-width:560px){
+  .map-quiz .other-answers{display:flex;gap:14px}
+  .map-quiz .other-answers>section{flex:1;min-width:0}
+  .map-quiz .other-answers>section+section{border-top:0;padding-top:0;border-left:2px solid #a2b9ae;padding-left:14px}
 }
 .map-quiz .other-answers:empty,.map-quiz #error:empty{display:none}
 .map-quiz #answerArea section{margin:0}
@@ -130,7 +133,6 @@ body:has(.map-quiz #feedback:empty)>main{
 .map-quiz:has(#feedback:empty) .panel>.round-actions{margin-top:8px;padding-top:6px}
 .map-quiz #answerArea h3{font-size:16px;margin:3px 0 4px}
 @media(max-width:520px){
-  .map-quiz .other-answers{row-gap:0}
   .map-quiz:has(#feedback:empty) .panel>.round-actions{gap:4px}
   .map-quiz .round-actions button{padding:7px 9px}
 }

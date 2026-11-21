@@ -109,6 +109,9 @@ const assert=require('node:assert/strict');
      for(const method of ['choice','type']){
        await page.evaluate(method=>begin({ids:['FR'],ask:'flag',reply:'capital+map+name',method},false),method);
        assert.deepEqual(await page.locator('#answerArea section').evaluateAll(nodes=>nodes.map(n=>n.dataset.kind)),['name','capital','map']);
+       const capitalSection=page.locator('.other-answers [data-kind=capital]');
+       const borders=await capitalSection.evaluate(el=>[getComputedStyle(el).borderLeftWidth,getComputedStyle(el).borderTopWidth]);
+       assert.deepEqual(borders,width>=560?['2px','0px']:['0px','2px']);
        const mapBox=await map.boundingBox(),fields=await page.locator('.other-answers').boundingBox();
        assert.ok(mapBox.y>=fields.y+fields.height-1);
        assert.ok(mapBox.height>=115);

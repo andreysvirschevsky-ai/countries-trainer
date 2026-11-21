@@ -186,7 +186,7 @@ async function question(){
  const area=$('answerArea'),check=$('check'),choices={},typedAnswers={};
  area.inert=true;$('skip').disabled=true;check.hidden=!multi;check.disabled=true;
  let otherAnswers=area;
- if(hasMap){
+ if(hasMap||multi){
    otherAnswers=document.createElement('div');otherAnswers.className='other-answers';area.append(otherAnswers);
    if(t.ask==='map')area.after($('prompt'));
  }
