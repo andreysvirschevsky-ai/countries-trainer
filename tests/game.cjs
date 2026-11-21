@@ -9,6 +9,11 @@ const assert=require('node:assert/strict');
    await page.route(/^https:\/\//,r=>r.abort());
    const errors=[];page.on('pageerror',e=>errors.push(e.message));
    await page.goto('http://127.0.0.1:8080');
+   for(const width of [390,1440]){
+     await page.setViewportSize({width,height:900});
+     const fox=await page.locator('.brand-fox').boundingBox(),cat=await page.locator('#cat').boundingBox();
+     assert.equal(fox.width,36);assert.equal(fox.height,36);assert.ok(fox.height<=cat.height);
+   }
    const testName='Тест-'+require('node:crypto').randomUUID().slice(0,8);
    const testPin=String(require('node:crypto').randomInt(10000)).padStart(4,'0');
    await page.locator('#nick').fill(testName);
