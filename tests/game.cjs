@@ -14,12 +14,21 @@ const assert=require('node:assert/strict');
      const fox=await page.locator('.brand-fox').boundingBox(),cat=await page.locator('#cat').boundingBox();
      assert.equal(fox.width,36);assert.equal(fox.height,36);assert.ok(fox.height<=cat.height);
    }
+   const headerPlayer=page.locator('header #headerPlayer');
+   assert.ok(await headerPlayer.isHidden());
    const testName='Тест-'+require('node:crypto').randomUUID().slice(0,8);
    const testPin=String(require('node:crypto').randomInt(10000)).padStart(4,'0');
    await page.locator('#nick').fill(testName);
    await page.locator('#pin').fill(testPin);await page.locator('#repeat').fill(testPin);
    await page.getByRole('button',{name:'Создать игрока'}).click();
    await page.locator('#startHint').waitFor();
+   assert.equal(await headerPlayer.textContent(),'Игрок · '+testName+' · локальная игра');
+   assert.ok(!(await page.locator('main').innerText()).includes(testName));
+   for(const width of [390,1440]){
+     await page.setViewportSize({width,height:900});
+     const player=await headerPlayer.boundingBox();
+     assert.ok(Math.abs(player.x+player.width/2-width/2)<1);
+   }
    assert.match(await page.locator('#startHint').innerText(),/Отметьте хотя бы одну страну/);
    assert.ok(await page.locator('#saveTask').isDisabled());
    assert.ok((await page.locator('#list').boundingBox()).height>300);
