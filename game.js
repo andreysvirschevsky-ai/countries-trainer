@@ -147,6 +147,7 @@ function answerOrder(task){
  return Object.keys(labels).filter(kind=>selected.includes(kind));
 }
 function showAnswerReview(host,id,task,review){
+ const parts=document.createElement('div');parts.className='review-parts';host.append(parts);
  for(const kind of answerOrder(task)){
    const picked=review.choices[kind],typed=review.typed[kind],correct=picked===id;
    const section=document.createElement('section');section.className='answer-review';section.dataset.kind=kind;
@@ -166,11 +167,12 @@ function showAnswerReview(host,id,task,review){
    }
    const caption=correct?'Ваш выбор — верно':kind==='flag'?'Верный флаг':kind==='map'?'Где находится страна':'Верный вариант';
    card(caption,correct&&typed?typed:displayName(id),id,'review-correct');
+   parts.append(section);
    if(kind==='map'){
-     const map=document.createElement('div');section.append(map);
+     const map=document.createElement('div');host.append(map);
      drawMap(map,{highlight:id,wrong:correct?null:picked,review:true});
+     map.classList.add('review-map');
    }
-   host.append(section);
  }
 }
 async function begin(task,practice){
@@ -248,11 +250,14 @@ async function question(){
      $('timer').textContent=clock(r.base);$('skip').hidden=true;check.hidden=true;area.replaceChildren();$('error').textContent='';
      const fb=$('feedback');fb.className='feedback'+(a.ok?'':' wrong');
      const missed=parts.filter(k=>choices[k]!==id);
-     fb.innerHTML='<strong>'+(a.ok?'Верно!':'Неверно!')+'</strong>'+(multi&&missed.length?' <span>('+missed.map(k=>labels[k].toLowerCase()).join(', ')+')</span>':'')+'<p>'+esc(countries[id].name)+' · '+esc(countries[id].capital)+'</p>';
-     showAnswerReview(fb,id,t,r.reviews[id]);
+     $('exit').parentElement.before(fb);
+     fb.innerHTML='<div class="verdict"><strong>'+(a.ok?'Верно!':'Неверно!')+'</strong>'+(multi&&missed.length?' <span>('+missed.map(k=>labels[k].toLowerCase()).join(', ')+')</span>':'')+'<p>'+esc(countries[id].name)+' · '+esc(countries[id].capital)+'</p></div>';
      const next=document.createElement('button');next.className='primary';next.textContent=i+1===r.order.length?'Посмотреть результат':'Следующий вопрос →';fb.append(next);
+     showAnswerReview(fb,id,t,r.reviews[id]);
+     if(t.ask==='map')fb.append($('prompt'));
      next.onclick=act(async()=>{if(i+1===r.order.length){r.done=true;await results();}else await question();});fb.tabIndex=-1;fb.focus({preventScroll:true});
-     if(fb.getBoundingClientRect().top>window.innerHeight*0.7)fb.scrollIntoView({block:'start'});
+     const buttonBox=next.getBoundingClientRect();
+     if(buttonBox.top<0||buttonBox.bottom>window.innerHeight)next.scrollIntoView({block:'nearest'});
    }catch(e){if(area.isConnected){$('error').textContent=errorMsg(e);busy=false;area.inert=false;check.disabled=false;$('skip').disabled=false;}}
  }
  try{await arm();}catch(e){if(area.isConnected){$('error').textContent=errorMsg(e);const retry=document.createElement('button');retry.textContent='Открыть вопрос повторно';retry.onclick=act(question);$('error').append(retry);}}

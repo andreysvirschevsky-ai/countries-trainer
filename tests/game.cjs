@@ -74,7 +74,7 @@ const assert=require('node:assert/strict');
    await page.locator('#check').click();assert.match(await page.locator('#feedback').innerText(),/Неверно!.*страна на карте/s);
    const mapReview=page.locator('#feedback .answer-review[data-kind=map]');
    assert.equal(await mapReview.locator('.review-correct').evaluate(el=>getComputedStyle(el).borderLeftColor),'rgb(54, 118, 93)');
-   const reviewFill=id=>mapReview.locator('path[data-id="'+id+'"]').first().evaluate(el=>getComputedStyle(el).fill);
+   const reviewFill=id=>page.locator('#feedback .review-map').locator('path[data-id="'+id+'"]').first().evaluate(el=>getComputedStyle(el).fill);
    assert.equal(await reviewFill('FR'),'rgb(54, 118, 93)');
    assert.equal(await reviewFill('IT'),'rgb(167, 71, 70)');
    await page.locator('#feedback > button.primary').click();assert.match(await page.locator('.metrics').innerText(),/0 \/ 1/);
@@ -125,6 +125,25 @@ const assert=require('node:assert/strict');
        assert.equal(await svg.getAttribute('viewBox'),'0 0 1000 500');
      }
    }
+   for(const [width,height] of [[1366,768],[390,667]]){
+     await page.setViewportSize({width,height});
+     for(const ask of ['flag','map']){
+       const reply=ask==='map'?'capital+flag+name':'capital+map+name';
+       await page.evaluate(({ask,reply})=>begin({ids:['AT','FR'],ask,reply,method:'choice'},false),{ask,reply});
+       for(const label of ['Следующий вопрос →','Посмотреть результат']){
+         await page.locator('#skip').click();
+         const next=page.getByRole('button',{name:label,exact:true});
+         const box=await next.boundingBox(),mapBox=await page.locator('#feedback .map-box').boundingBox();
+         assert.ok(box.y>=0 && box.y+box.height<=height);
+         assert.ok(box.y+box.height<=mapBox.y);
+         const cards=await page.locator('#feedback .answer-review').evaluateAll(nodes=>nodes.map(n=>n.getBoundingClientRect().toJSON()));
+         assert.ok(cards.every(card=>card.bottom<=mapBox.y));
+         if(width>600)assert.ok(cards.every(card=>card.top===cards[0].top));
+         await next.click();
+       }
+       assert.ok(await page.locator('.metrics').isVisible());
+     }
+   }
    await page.setViewportSize({width:1440,height:900});
    for(const ask of ['flag','name','capital','map']){
      for(const reply of ['flag','name','capital','map'].filter(k=>k!==ask)){
@@ -154,7 +173,7 @@ const assert=require('node:assert/strict');
            await lastCountry.locator('summary').click();
          }
        }
-       if(reply==='map')assert.ok(await review.locator('.map-box svg').isVisible());
+       if(reply==='map')assert.ok(await page.locator('#feedback .review-map svg').isVisible());
      }
    }
    await page.evaluate(()=>begin({ids:['FR'],ask:'name',reply:'flag',method:'choice'},false));

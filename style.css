@@ -84,13 +84,29 @@ dialog h2{margin:0}
 .review-cards figcaption{font-size:13px;font-weight:bold}
 .review-cards .review-picked{border-left:4px solid #985566}
 .review-cards .review-correct{border-left:4px solid #36765d}
-.answer-review[data-kind=map]{--map-correct:#36765d;--map-wrong:#a74746}
+.review-map,.answer-review[data-kind=map]{--map-correct:#36765d;--map-wrong:#a74746}
 .answer-review[data-kind=map] .review-correct{border-color:var(--map-correct)}
 .answer-review[data-kind=map] .review-picked{border-color:var(--map-wrong)}
 .answer-review[data-kind=flag] figure{background:#c6d6de}
 .answer-review .flag-img{height:clamp(55px,10vh,95px);max-width:100%}
-.answer-review .map-box{margin-top:8px}
-.feedback>.primary{margin-top:6px}
+.review-map{margin-top:8px}
+.review-parts{display:flex;flex-wrap:wrap;gap:10px 16px}
+.review-parts>.answer-review{flex:1 1 150px;min-width:0;margin:0}
+.feedback{
+  display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:start;gap:10px 12px;
+}
+.feedback>.primary{justify-self:end}
+.feedback>.review-parts,.feedback>.map-box{grid-column:1/-1}
+.feedback .verdict p{margin:4px 0 0}
+.feedback .review-cards{gap:5px}
+.feedback .review-cards figure{padding:6px 9px}
+.feedback .answer-review .flag-img{height:clamp(48px,8vh,74px)}
+.quiz .panel:has(.feedback)>h2{display:none}
+.map-quiz .feedback>.map-box:not(.expanded-map){height:clamp(190px,48dvh,500px);margin:0}
+@media(max-width:440px){
+  .feedback{padding:10px;gap:8px}
+  .feedback>.primary{max-width:44vw;padding:8px 10px}
+}
 
 #mistakes:not(:empty){margin-block-end:24px}
 
@@ -105,7 +121,7 @@ body:has(.map-quiz #feedback:empty)>main{
 .map-quiz:has(#feedback:empty),
 .map-quiz:has(#feedback:empty)>.panel,
 .map-quiz #answerArea:has(.map-active),
-.map-quiz section[data-kind=map]{
+.map-quiz #answerArea section[data-kind=map]{
   display:flex;flex-direction:column;flex:1
 }
 .map-quiz:has(#feedback:empty){margin:0;width:100%}
