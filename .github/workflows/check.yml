@@ -1,0 +1,28 @@
+name: Проверка тренажёра
+on: [push, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  game:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: test
+        ports: ['5432:5432']
+        options: --health-cmd pg_isready --health-interval 5s --health-timeout 3s --health-retries 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Проверить скрипт Supabase на PostgreSQL
+        env:
+          PGHOST: localhost
+          PGUSER: postgres
+          PGPASSWORD: test
+        run: psql -v ON_ERROR_STOP=1 -f tests/round.sql
+      - name: Проверить игру в Chrome
+        run: |
+          npm install --prefix "$RUNNER_TEMP/atlas-check" playwright@1.56.1
+          python3 -m http.server 8080 --bind 127.0.0.1 &
+          NODE_PATH="$RUNNER_TEMP/atlas-check/node_modules" node tests/game.cjs
