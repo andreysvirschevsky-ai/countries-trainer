@@ -113,7 +113,7 @@ function setup(){
    }
    const textParts=replies.filter(textKind);
    $('methodBox').hidden=!textParts.length;$('method').value=selected.method;
-   $('methodLabel').textContent=textParts.length===2?'Как отвечать на название страны и столицу?':textParts[0]==='name'?'Как отвечать на название страны?':'Как отвечать на столицу?';
+   $('methodLabel').textContent=textParts.length===2?'Как вводить страну и столицу?':textParts[0]==='name'?'Как вводить страну?':'Как вводить столицу?';
    const fixed=[];
    if(replies.includes('flag'))fixed.push('Флаг — выбрать из четырёх изображений.');
    if(replies.includes('map'))fixed.push('Карта — нажать на страну.');
